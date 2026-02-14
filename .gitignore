@@ -1,0 +1,46 @@
+############################################
+# STM32CubeIDE - Default Project
+############################################
+
+# Build output directories
+/Debug/
+/Release/
+
+# Object and dependency files
+*.o
+*.d
+*.su
+
+# Executables / binaries
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+
+############################################
+# STM32CubeIDE / Eclipse metadata
+############################################
+
+.metadata/
+.settings/
+*.launch
+
+# (Optional: uncomment if you don't want IDE project files in repo)
+# .project
+# .cproject
+
+############################################
+# STM32CubeMX backups
+############################################
+
+*.bak
+*.orig
+*.ioc_backup
+
+############################################
+# OS generated files
+############################################
+
+.DS_Store
+Thumbs.db
