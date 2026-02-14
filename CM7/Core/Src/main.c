@@ -18,10 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usbd_hid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +57,8 @@
 
 /* USER CODE BEGIN PV */
 
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,6 +71,32 @@ static void MX_GPIO_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static void HID_MouseMove(int8_t dx, int8_t dy)
+{
+    uint8_t report[4];
+
+    // button presses (8 bits for 8 buttons; bit 1 is for left, bit 2 for right,
+    // bit 3 for middle, other bits are unused. value 1 for pressed 0 for released)
+    report[0] = 0x00;
+    report[1] = (uint8_t)dx;
+    report[2] = (uint8_t)dy;
+    report[3] = 0x00;   // wheel
+
+    USBD_HID_SendReport(&hUsbDeviceFS, report, sizeof(report));
+}
+
+static void HID_MouseClickLeft(void)
+{
+    uint8_t report[4] = {0};
+
+    report[0] = 0x01; // left down
+    USBD_HID_SendReport(&hUsbDeviceFS, report, 4);
+    HAL_Delay(20);
+
+    report[0] = 0x00; // left up
+    USBD_HID_SendReport(&hUsbDeviceFS, report, 4);
+}
 
 /* USER CODE END 0 */
 
@@ -137,6 +167,7 @@ Error_Handler();
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -149,7 +180,20 @@ Error_Handler();
 
     /* USER CODE BEGIN 3 */
 	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-	  HAL_Delay(2000); // ms
+
+	  HAL_Delay(10); // ms
+
+	  uint8_t report[4] = {0};
+
+	  report[0] = 0x01; // left down
+	  USBD_HID_SendReport(&hUsbDeviceFS, report, 4);
+
+	  HAL_Delay(20);
+
+	  HID_MouseMove(1, 0); // + X
+	  report[0] = 0x00; // left up
+	  USBD_HID_SendReport(&hUsbDeviceFS, report, 4);
+
   }
   /* USER CODE END 3 */
 }
@@ -176,10 +220,21 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_CSI|RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.CSIState = RCC_CSI_ON;
+  RCC_OscInitStruct.CSICalibrationValue = RCC_CSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_CSI;
+  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLN = 48;
+  RCC_OscInitStruct.PLL.PLLP = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -218,6 +273,7 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
